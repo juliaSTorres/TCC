@@ -1,0 +1,205 @@
+<!DOCTYPE html>
+<html lang="pt-br">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>Solicitações</title>
+  <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;600;700&display=swap" rel="stylesheet">
+  <script src="https://cdn.tailwindcss.com"></script>
+  <style>
+    .bg-blur {
+      backdrop-filter: blur(6px);
+      background-color: rgba(255, 255, 255, 0.7);
+    }
+    .icon-only {
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      height: 60px;
+      font-size: 24px;
+    }
+  </style>
+</head>
+<body class="bg-[#fbfff8] font-inter">
+  <div class="flex">
+    <div id="sidebar" class="bg-[#cbfeaf] h-screen w-[60px] transition-all duration-300 fixed overflow-hidden">
+      <button class="w-full p-5 font-bold text-left icon-only" title="Solicitações">📋</button>
+      <button class="w-full p-5 font-bold text-left icon-only" title="Dashboard">📊</button>
+      <button class="w-full p-5 font-bold text-left icon-only" title="Histórico">🕒</button>
+    </div>
+    <div class="ml-[60px] transition-all duration-300 w-full p-8">
+      <div class="max-w-4xl mx-auto">
+        <h1 class="text-4xl font-bold mb-6">SOLICITAÇÕES</h1>
+        <button class="bg-[#5af705] text-black px-5 py-3 rounded-xl font-bold mb-6" onclick="abrirFormulario()">+ Adicionar Solicitação</button>
+
+        <!-- LISTAGEM DE SOLICITAÇÕES -->
+        <div id="listaSolicitacoes"></div>
+
+      </div>
+    </div>
+  </div>
+
+  <!-- MODAL ADICIONAR SOLICITAÇÃO -->
+  <div id="formModal" class="fixed inset-0 bg-black bg-opacity-20 backdrop-blur-sm hidden justify-center items-center z-50">
+    <div class="bg-white p-8 rounded-xl w-full max-w-xl relative">
+      <button class="absolute top-4 right-5 text-2xl" onclick="fecharFormulario()">&times;</button>
+      <h2 class="text-2xl font-bold mb-4">Nova Solicitação</h2>
+      <input type="text" id="idList" placeholder="ID da Lista" class="w-full p-3 mb-4 border border-gray-300 rounded-lg" />
+      <input type="text" id="name" placeholder="Título do Card" class="w-full p-3 mb-4 border border-gray-300 rounded-lg" />
+      <textarea id="desc" placeholder="Descrição (opcional)" class="w-full p-3 mb-4 border border-gray-300 rounded-lg"></textarea>
+      <input type="date" id="due" class="w-full p-3 mb-4 border border-gray-300 rounded-lg" />
+      <input type="text" id="idMembers" placeholder="IDs dos Membros (separado por vírgula)" class="w-full p-3 mb-4 border border-gray-300 rounded-lg" />
+      <input type="text" id="labels" placeholder="Rótulos (separado por vírgula)" class="w-full p-3 mb-4 border border-gray-300 rounded-lg" />
+      <input type="text" id="pos" placeholder="Posição (opcional)" class="w-full p-3 mb-4 border border-gray-300 rounded-lg" />
+      <input type="file" id="refImage" class="w-full p-3 mb-4 border border-gray-300 rounded-lg" accept="image/*" />
+      <button class="bg-[#43b903] text-white px-6 py-3 rounded-lg font-bold" onclick="enviarSolicitacao()">Enviar</button>
+    </div>
+  </div>
+
+  <!-- CARD DETALHES -->
+  <div id="cardDetalhes" class="fixed inset-0 z-50 hidden bg-blur flex items-center justify-center">
+    <div class="bg-white w-[400px] p-4 rounded-xl shadow-xl relative">
+      <button class="absolute top-2 right-2 text-xl" onclick="fecharCard()">✖</button>
+      <h2 class="text-xl font-bold mb-2" id="cardTitulo">Título do Card</h2>
+      <div class="text-sm text-gray-700" id="cardPrazo">Data</div>
+      <div class="text-sm font-medium" id="cardAutor">Autor</div>
+      <div class="text-sm mb-2" id="cardContato">Contato</div>
+      <p class="text-gray-800 text-sm border-t pt-2" id="cardDescricao">Descrição</p>
+      <img id="cardImagem" class="mt-2 hidden max-w-full rounded" />
+    </div>
+  </div>
+
+  <!-- CARD DE RETORNO -->
+  <div id="cardRetorno" class="fixed inset-0 z-50 hidden bg-blur flex items-center justify-center">
+    <div class="bg-white w-[400px] p-4 rounded-xl shadow-xl relative">
+      <button class="absolute top-2 right-2 text-xl">✖</button>
+      <h2 class="text-lg font-bold mb-4">POR QUAL MOTIVO DESEJA RETORNAR:</h2>
+      <form onsubmit="removerCardAtual(); fecharRetorno(); return false;">
+        <div class="flex flex-col gap-2">
+          <label><input type="radio" name="motivo" value="Sem detalhamento"> Sem detalhamento</label>
+          <label><input type="radio" name="motivo" value="Prazo"> Prazo</label>
+          <label><input type="radio" name="motivo" value="Falha na referência"> Falha na referência</label>
+          <label><input type="radio" name="motivo" value="Outro" onchange="mostrarOutro(true)"> Outro:</label>
+          <textarea id="outroMotivo" class="hidden border rounded p-1" placeholder="Especifique..."></textarea>
+
+          <label class="mt-2">DESCRIÇÃO:</label>
+          <textarea class="border rounded p-2" placeholder="Descreva o que precisa ser ajustado..."></textarea>
+        </div>
+        <div class="flex justify-between mt-4">
+          <button type="button" class="bg-gray-400 text-white px-4 py-1 rounded" onclick="fecharRetorno()">Cancelar</button>
+          <button type="submit" class="bg-[#43b903] text-white px-4 py-1 rounded"onclick="fecharRetorno(); removerCardAtual()">Enviar</button>
+        </div>
+      </form>
+    </div>
+  </div>
+
+  <script>
+    let cardAtual = null;
+
+    document.body.addEventListener('mousemove', function(e) {
+      if (e.clientX < 10) expandirSidebar();
+      if (e.clientX > 10) voltarSidebar();
+    });
+
+    function expandirSidebar() {
+      const sidebar = document.getElementById('sidebar');
+      sidebar.classList.remove('w-[60px]');
+      sidebar.classList.add('w-[300px]');
+      const botoes = sidebar.querySelectorAll('button');
+      botoes[0].innerHTML = '📋 Solicitações';
+      botoes[1].innerHTML = '📊 Dashboard';
+      botoes[2].innerHTML = '🕒 Histórico';
+    }
+
+
+    function voltarSidebar() {
+      const sidebar = document.getElementById('sidebar');
+      sidebar.classList.remove('w-[300px]');
+      sidebar.classList.add('w-[60px]');
+      const botoes = sidebar.querySelectorAll('button');
+      botoes[0].innerHTML = '📋';
+      botoes[1].innerHTML = '📊';
+      botoes[2].innerHTML = '🕒';
+    }
+
+    function abrirFormulario() {
+      document.getElementById('formModal').classList.remove('hidden');
+      document.getElementById('formModal').classList.add('flex');
+    }
+    function fecharFormulario() {
+      document.getElementById('formModal').classList.add('hidden');
+      document.getElementById('formModal').classList.remove('flex');
+    }
+    function abrirCard(titulo, desc, prazo, autor = '', contato = '', imagem = '') {
+      document.getElementById('cardTitulo').innerText = titulo;
+      document.getElementById('cardDescricao').innerText = desc || 'Sem descrição';
+      document.getElementById('cardPrazo').innerText = prazo || 'Sem prazo';
+      document.getElementById('cardAutor').innerText = autor;
+      document.getElementById('cardContato').innerText = contato;
+      const img = document.getElementById('cardImagem');
+      if (imagem) {
+        img.src = imagem;
+        img.classList.remove('hidden');
+      } else {
+        img.classList.add('hidden');
+      }
+      document.getElementById('cardDetalhes').classList.remove('hidden');
+    }
+    function fecharCard() {
+      document.getElementById('cardDetalhes').classList.add('hidden');
+    }
+    function abrirRetorno(button) {
+      cardAtual = button.closest('div.bg-white');
+      document.getElementById('cardRetorno').classList.remove('hidden');
+    }
+    function fecharRetorno() {
+      document.getElementById('cardRetorno').classList.add('hidden');
+    }
+    function mostrarOutro(mostrar) {
+      document.getElementById('outroMotivo').classList.toggle('hidden', !mostrar);
+    }
+    function removerCardAtual() {
+      if (cardAtual) cardAtual.remove();
+    }
+
+    function enviarSolicitacao() {
+      const imagem = document.getElementById('refImage').files[0];
+      let imgURL = '';
+      if (imagem) imgURL = URL.createObjectURL(imagem);
+
+      const json = {
+        idList: document.getElementById('idList').value,
+        name: document.getElementById('name').value,
+        desc: document.getElementById('desc').value,
+        due: document.getElementById('due').value,
+        idMembers: document.getElementById('idMembers').value.split(',').map(s => s.trim()).filter(Boolean),
+        labels: document.getElementById('labels').value.split(',').map(s => s.trim()).filter(Boolean),
+        pos: document.getElementById('pos').value,
+        imagem: imgURL
+      };
+
+      adicionarSolicitacaoNaTela(json);
+      alert('Solicitação adicionada com sucesso!');
+      fecharFormulario();
+    }
+
+    function adicionarSolicitacaoNaTela(json) {
+      const container = document.getElementById('listaSolicitacoes');
+      const div = document.createElement('div');
+      div.className = 'bg-white p-5 rounded-xl shadow flex justify-between items-center mb-4';
+      div.innerHTML = `
+        <div>
+          <strong>${json.name}</strong><br>
+          ${json.due ? `Prazo: ${json.due}` : 'Sem prazo definido'}
+        </div>
+        <div class="flex items-center gap-2">
+          <button class="text-blue-600 underline" onclick="abrirCard('${json.name}', '${json.desc}', '${json.due}', '', '', '${json.imagem}')">ABRIR CARD</button>
+          <button class="bg-[#43b903] text-white px-3 py-2 rounded-lg">✔</button>
+          <button class="bg-red-500 text-white px-3 py-2 rounded-lg" onclick="abrirRetorno(this)">✖</button>
+        </div>
+      `;
+      container.prepend(div);
+    }
+  </script>
+</body>
+</html>
