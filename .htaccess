@@ -1,0 +1,8 @@
+RewriteEngine On
+# Se a requisição não for para um diretório real existente
+RewriteCond %{REQUEST_FILENAME} !-d
+# E se a requisição não for para um arquivo real existente
+RewriteCond %{REQUEST_FILENAME} !-f
+# Então, redirecione todas as requisições para /api/qualquer_coisa para index.php
+# O [QSA,L] significa Query String Append (mantém parâmetros da URL) e Last (última regra a ser aplicada)
+RewriteRule ^api/(.*)$ index.php [QSA,L]
